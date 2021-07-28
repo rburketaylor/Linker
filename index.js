@@ -1,12 +1,13 @@
 // ==UserScript==
 // globals
-// @name         link-check
+// @name         Linker
 // @namespace    https://jira.gpei.ca
-// @version      0.1
+// @version      1.0
 // @description  Checks if user has anyone with the same email address
 // @author       Burke Taylor
 // @match        https://jira.gpei.ca/*
 // @grant        GM.xmlHttpRequest
+// @grant        GM.setClipboard
 // @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/arrive/2.4.1/arrive.min.js
 // ==/UserScript==
@@ -90,7 +91,10 @@ async function sendNotification() {
             }
         }
         if(alerttext != ""){
-            alert(alerttext.slice(0, -1));
+            alerttext = alerttext.slice(0, -1);
+            if(confirm(alerttext)){
+                GM.setClipboard(alerttext);
+            }
         }
     }
 }
