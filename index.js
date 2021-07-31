@@ -5,10 +5,8 @@
 // @version      1.0
 // @description  Checks if user has anyone with the same email address
 // @author       Burke Taylor
-// @match        https://jira.gpei.ca/*
-// @grant        GM.xmlHttpRequest
-// @grant        GM.setClipboard
-// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js
+// @match        http*://jira.gpei.ca/*
+// @grant        none
 // @require      https://cdnjs.cloudflare.com/ajax/libs/arrive/2.4.1/arrive.min.js
 // ==/UserScript==
 /* globals jQuery, $ */
@@ -16,38 +14,21 @@
 let currentIssue = "";
 let email = "";
 
-function makeRequest(url, jsessionid) {
-    return new Promise((resolve, reject) => {
-        GM.xmlHttpRequest({
-            method: "GET",
-            url: url,
-            headers: {
-                "Accept": "application/json",
-                "Cookie": jsessionid
-            },
-            onload: function (res) {
-                resolve(res.response);
-            },
-            onerror: function () {
-                reject("Request failed");
-            }
-        });
-    });
-}
-
-function getJSessionID(){
-    return document.cookie
-            .split('; ')
-            .find(row => row.startsWith('JSESSIONID'));
+async function makeRequest(url) {
+    let response = await fetch(url);
+    if(response.ok){
+        return await response.json();
+    }
+    else{
+        console.log("Error in request");
+        return;
+    }
 }
 
 async function getTicketsByEmail() {
     const url = 'https://jira.gpei.ca/rest/api/2/search?jql=cf[10715]~"' + email + '"&fields=key';
-    //Get the session cookie so the script can call the jira api.
-    const jsessionid = getJSessionID();
     let tickets = [];
-    const response = await makeRequest(url, jsessionid);
-    const json = JSON.parse(response);
+    const json = await makeRequest(url);
     const issues = json.issues;
     for (const issue of issues) {
         tickets.push(issue.key);
@@ -93,7 +74,8 @@ async function sendNotification() {
         if(alerttext != ""){
             alerttext = alerttext.slice(0, -1);
             if(confirm(alerttext)){
-                GM.setClipboard(alerttext);
+                const cb = navigator.clipboard;
+                cb.writeText(alerttext);
             }
         }
     }
@@ -103,7 +85,7 @@ function sleep(ms){
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function checkPageChange() {
+async function checkPageChanges() {
     const peip = document.getElementById("key-val");
     if (peip != null) {
         if (peip.innerHTML != currentIssue) {
@@ -113,12 +95,13 @@ async function checkPageChange() {
     }
     else{
         await sleep(300);
-        checkPageChange();
+        checkPageChanges();
     }
 }
 
 (async () => {
+    'use strict';
     $(document).arrive("#key-val", {fireOnAttributesModification: true, existing: true}, function() {
-        checkPageChange();
+        checkPageChanges();
     });
 })();
